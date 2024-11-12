@@ -8,36 +8,48 @@
       dnf:
         name:
           - python3-PyMySQL
-          - mariadb-server    # CentOSではMySQLの代わりにMariaDBを使用
+          - mariadb-server
         state: present
 
     - name: MariaDBサービスの起動
       service:
-        name: mariadb        # サービス名もmariadbに変更
+        name: mariadb
         state: started
-        enabled: yes         # システム起動時に自動起動
+        enabled: yes
 
-    - name: 予約管理システム用データベースを作成
+    - name: MariaDBのrootパスワードを設定
+      mysql_user:
+        name: root
+        host: localhost
+        password: "{{ lookup('awx', 'mariadb_root_password') }}"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+        state: present
+
+    - name: データベースを作成
       mysql_db:
         name: reservation_system
         state: present
+        login_user: root
+        login_password: "{{ lookup('awx', 'mariadb_root_password') }}"
 
-    - name: MySQLユーザー作成
+    - name: データベースユーザー作成
       mysql_user:
         name: okamotodaichi
-        host: 192.168.64.6
-        password: "{{ lookup('awx', 'password') }}"
+        host: "192.168.64.6"
+        password: "{{ lookup('awx', 'db_user_password') }}"
         priv: "reservation_system.*:ALL"
         state: present
+        login_user: root
+        login_password: "{{ lookup('awx', 'mariadb_root_password') }}"
 
     - name: MariaDB設定ファイルの変更
       lineinfile:
-        path: /etc/my.cnf.d/mariadb-server.cnf   # CentOSでの設定ファイルパス
+        path: /etc/my.cnf.d/mariadb-server.cnf
         regexp: '^bind-address'
         line: 'bind-address = 0.0.0.0'
         backup: yes
 
     - name: MariaDBを再起動する
       service:
-        name: mariadb        # サービス名をmariadbに変更
+        name: mariadb
         state: restarted
