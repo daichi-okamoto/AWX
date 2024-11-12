@@ -4,9 +4,8 @@
   tasks:
     - name: 必要なパッケージをインストール
       apt:
-        name:
-          - python3-pymysql  # これを追加
-          - mysql-server     # MySQLサーバー
+        - python3-pymysql  # これを追加
+        - mysql-server     # MySQLサーバー
       state: present
       update_cache: yes    # apt-get updateを実行
       
