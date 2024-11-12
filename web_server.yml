@@ -6,6 +6,7 @@
     db_host: "192.168.64.6"
     db_name: "reservation_system"
     db_user: "okamotodaichi"
+    db_user_password: "{{ db_user_password }}"  # AWXのsurveyで設定する変数
   tasks:
     - name: 必要なパッケージをインストール
       dnf:
