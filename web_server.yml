@@ -15,6 +15,11 @@
           - policycoreutils-python-utils  # SELinux管理用パッケージを追加
         state: present
 
+    - name: mod_envモジュールの有効化確認 
+      shell: |
+        httpd -M | grep env_module || ln -s /etc/httpd/modules/mod_env.so /etc/httpd/modules/enabled/
+      changed_when: false
+
     - name: Apacheサービスの起動と自動起動設定
       service:
         name: httpd
@@ -41,10 +46,12 @@
         state: enabled
         immediate: yes
 
-    - name: Apache(httpd)の再起動
-      service:
-        name: httpd
-        state: restarted
+    - name: 環境変数設定ファイルの作成
+      copy:
+        content: |
+          SetEnv DB_PASSWORD {{ db_user_password }}
+        dest: /etc/httpd/conf.d/env.conf
+        mode: '0644'
 
     - name: DB接続テスト用PHPファイルの作成
       copy:
@@ -53,7 +60,7 @@
           $host = '{{ db_host }}';
           $dbname = '{{ db_name }}';
           $username = '{{ db_user }}';
-          $password = '{{ db_user_password }}';
+          $password = '<?php echo getenv("DB_PASSWORD"); ?>';
 
           try {
               $pdo = new PDO(
@@ -70,3 +77,8 @@
           ?>
         dest: /var/www/html/db-test.php
         mode: '0644'
+
+    - name: Apache(httpd)の再起動
+      service:
+        name: httpd
+        state: restarted
