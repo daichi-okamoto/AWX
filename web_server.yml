@@ -6,7 +6,6 @@
     db_host: "192.168.64.6"
     db_name: "reservation_system"
     db_user: "okamotodaichi"
-    db_user_password: "{{ db_user_password }}"  # AWXのsurveyで設定する変数
   tasks:
     - name: 必要なパッケージをインストール
       dnf:
@@ -45,38 +44,6 @@
         permanent: yes
         state: enabled
         immediate: yes
-
-    - name: 環境変数設定ファイルの作成
-      copy:
-        content: |
-          SetEnv DB_PASSWORD {{ db_user_password }}
-        dest: /etc/httpd/conf.d/env.conf
-        mode: '0644'
-
-    - name: DB接続テスト用PHPファイルの作成
-      copy:
-        content: |
-          <?php
-          $host = '{{ db_host }}';
-          $dbname = '{{ db_name }}';
-          $username = '{{ db_user }}';
-          $password = '<?php echo getenv("DB_PASSWORD"); ?>';
-
-          try {
-              $pdo = new PDO(
-                  "mysql:host=$host;dbname=$dbname",
-                  $username,
-                  $password,
-                  array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION)
-              );
-              echo "データベース接続成功！\n";
-              echo "MariaDBバージョン: " . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-          } catch(PDOException $e) {
-              echo "接続失敗: " . $e->getMessage();
-          }
-          ?>
-        dest: /var/www/html/db-test.php
-        mode: '0644'
 
     - name: Apache(httpd)の再起動
       service:
