@@ -41,3 +41,28 @@
       service:
         name: httpd
         state: restarted
+
+    - name: DB接続テスト用PHPファイルの作成
+      copy:
+        content: |
+          <?php
+          $host = '{{ db_host }}';
+          $dbname = '{{ db_name }}';
+          $username = '{{ db_user }}';
+          $password = '{{ db_user_password }}';
+
+          try {
+              $pdo = new PDO(
+                  "mysql:host=$host;dbname=$dbname",
+                  $username,
+                  $password,
+                  array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION)
+              );
+              echo "データベース接続成功！\n";
+              echo "MariaDBバージョン: " . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
+          } catch(PDOException $e) {
+              echo "接続失敗: " . $e->getMessage();
+          }
+          ?>
+        dest: /var/www/html/db-test.php
+        mode: '0644'
