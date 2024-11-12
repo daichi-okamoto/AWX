@@ -3,10 +3,15 @@
   become: true
   vars:
     ansible_python_interpreter: /usr/bin/python3
+    db_host: "192.168.64.6"
+    db_name: "reservation_system"
+    db_user: "okamotodaichi"
   tasks:
-    - name: Apache(httpd)のインストール
+    - name: 必要なパッケージをインストール
       dnf:
-        name: httpd
+        name:
+          - httpd
+          - policycoreutils-python-utils  # SELinux管理用パッケージを追加
         state: present
 
     - name: Apacheサービスの起動と自動起動設定
@@ -19,16 +24,14 @@
       dnf:
         name:
           - php
-          - php-mysqlnd  # MariaDB/MySQL用のPHPモジュール
+          - php-mysqlnd
           - php-xml
           - php-mbstring
         state: present
 
     - name: SELinuxの設定変更（Apache用）
-      seboolean:
-        name: httpd_can_network_connect
-        state: yes
-        persistent: yes
+      shell: setsebool -P httpd_can_network_connect on
+      changed_when: false  # 状態変更の判定をスキップ
 
     - name: ファイアウォールでHTTPを許可
       firewalld:
