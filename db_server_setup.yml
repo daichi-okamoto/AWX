@@ -5,12 +5,17 @@
     ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: 必要なパッケージをインストール
-      apt:
+      dnf:
         name:
-          - python3-pymysql
-          - mysql-server
+          - python3-PyMySQL
+          - mariadb-server    # CentOSではMySQLの代わりにMariaDBを使用
         state: present
-        update_cache: yes
+
+    - name: MariaDBサービスの起動
+      service:
+        name: mariadb        # サービス名もmariadbに変更
+        state: started
+        enabled: yes         # システム起動時に自動起動
 
     - name: 予約管理システム用データベースを作成
       mysql_db:
@@ -25,14 +30,14 @@
         priv: "reservation_system.*:ALL"
         state: present
 
-    - name: MySQL設定ファイルの変更
+    - name: MariaDB設定ファイルの変更
       lineinfile:
-        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        path: /etc/my.cnf.d/mariadb-server.cnf   # CentOSでの設定ファイルパス
         regexp: '^bind-address'
         line: 'bind-address = 0.0.0.0'
         backup: yes
 
-    - name: MySQLを再起動する
+    - name: MariaDBを再起動する
       service:
-        name: mysql
+        name: mariadb        # サービス名をmariadbに変更
         state: restarted
