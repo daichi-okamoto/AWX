@@ -1,5 +1,5 @@
 - name: WebサーバーのLAMP環境セットアップ
-  hosts: UTM-server
+  hosts: webserver
   become: true
   tasks:
     - name: Apacheのインストール
