@@ -1,5 +1,5 @@
 - name: 単一データベースの設定
-  hosts: UTM-DB-server
+  hosts: dbserver
   become: true
   tasks:
     - name: 予約管理システム用データベースを作成
