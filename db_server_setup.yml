@@ -3,8 +3,8 @@
   become: true
   vars:
     ansible_python_interpreter: /usr/bin/python3
-    mariadb_root_pass: "{{ mariadb_root_password }}"  # AWXで設定した認証情報
-    db_user_pass: "{{ db_user_password }}"            # AWXで設定した認証情報
+    mariadb_root_pass: "{{ mariadb_root_password }}"
+    db_user_pass: "{{ db_user_password }}"
   tasks:
     - name: 必要なパッケージをインストール
       dnf:
@@ -19,6 +19,12 @@
         state: started
         enabled: yes
 
+    - name: rootパスワードが設定済みか確認
+      command: mysql -u root -p{{ mariadb_root_pass }} -e "SELECT 1"
+      register: root_login_check
+      ignore_errors: yes
+      no_log: yes  # パスワードをログに表示しない
+
     - name: MariaDBのrootパスワードを設定
       mysql_user:
         name: root
@@ -26,6 +32,7 @@
         password: "{{ mariadb_root_pass }}"
         login_unix_socket: /var/lib/mysql/mysql.sock
         state: present
+      when: root_login_check.rc != 0  # ログイン失敗時のみ実行
 
     - name: データベースを作成
       mysql_db:
@@ -37,7 +44,7 @@
     - name: データベースユーザー作成
       mysql_user:
         name: okamotodaichi
-        host: "192.168.64.6"
+        host: "192.168.64.5"  # WebサーバーのIPに修正
         password: "{{ db_user_pass }}"
         priv: "reservation_system.*:ALL"
         state: present
@@ -51,32 +58,14 @@
         line: 'bind-address = 0.0.0.0'
         backup: yes
 
+    - name: ファイアウォールでMariaDBポートを許可
+      firewalld:
+        port: 3306/tcp
+        permanent: yes
+        state: enabled
+        immediate: yes
+
     - name: MariaDBを再起動する
       service:
         name: mariadb
         state: restarted
-
-    - name: DB接続テスト用PHPファイルの作成
-      copy:
-        content: |
-          <?php
-          $host = '{{ db_host }}';
-          $dbname = '{{ db_name }}';
-          $username = '{{ db_user }}';
-          $password = '{{ db_user_password }}';  // AWXのsurveyで設定したパスワード
-
-          try {
-              $pdo = new PDO(
-                  "mysql:host=$host;dbname=$dbname",
-                  $username,
-                  $password,
-                  array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION)
-              );
-              echo "データベース接続成功！\n";
-              echo "MariaDBバージョン: " . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-          } catch(PDOException $e) {
-              echo "接続失敗: " . $e->getMessage();
-          }
-          ?>
-        dest: /var/www/html/db-test.php
-        mode: '0644'
