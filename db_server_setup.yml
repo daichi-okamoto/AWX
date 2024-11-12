@@ -1,0 +1,28 @@
+- name: 単一データベースの設定
+  hosts: UTM-DB-server
+  become: true
+  tasks:
+    - name: 予約管理システム用データベースを作成
+      mysql_db:
+        name: reservation_system  # 使用するデータベース名
+        state: present
+
+    - name: MySQLユーザー作成
+      mysql_user:
+        name: okamotodaichi  # DBにアクセスするユーザー名
+        host: 192.168.64.6     # WebサーバーのIP
+        password: "{{ lookup('awx', 'password') }}"  # 認証情報で変数化されたパスワードを参照
+        priv: "reservation_system.*:ALL"  # 権限付与
+        state: present
+
+    - name: MySQL設定ファイルの変更
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address'
+        line: 'bind-address = 0.0.0.0'
+        backup: yes
+
+    - name: MySQLを再起動する
+      service:
+        name: mysql
+        state: restarted
