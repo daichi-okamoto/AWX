@@ -2,6 +2,14 @@
   hosts: dbserver
   become: true
   tasks:
+    - name: 必要なパッケージをインストール
+      apt:
+        name:
+          - python3-pymysql  # これを追加
+          - mysql-server     # MySQLサーバー
+      state: present
+      update_cache: yes    # apt-get updateを実行
+      
     - name: 予約管理システム用データベースを作成
       mysql_db:
         name: reservation_system  # 使用するデータベース名
