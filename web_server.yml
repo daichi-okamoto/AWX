@@ -2,28 +2,42 @@
   hosts: webserver
   become: true
   vars:
-    ansible_python_interpreter: /usr/bin/python3  # この行を追加
+    ansible_python_interpreter: /usr/bin/python3
   tasks:
-    - name: Apacheのインストール
-      apt:
-        name: apache2
+    - name: Apache(httpd)のインストール
+      dnf:
+        name: httpd
         state: present
 
-    - name: PHPのインストール
-      apt:
-        name: php
-        state: present
+    - name: Apacheサービスの起動と自動起動設定
+      service:
+        name: httpd
+        state: started
+        enabled: yes
 
-    - name: PHP MySQLモジュールのインストール
-      apt:
+    - name: PHPと必要なモジュールのインストール
+      dnf:
         name:
           - php
-          - php-mysqli 
+          - php-mysqlnd  # MariaDB/MySQL用のPHPモジュール
           - php-xml
           - php-mbstring
         state: present
 
-    - name: Apacheの再起動
+    - name: SELinuxの設定変更（Apache用）
+      seboolean:
+        name: httpd_can_network_connect
+        state: yes
+        persistent: yes
+
+    - name: ファイアウォールでHTTPを許可
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Apache(httpd)の再起動
       service:
-        name: apache2
+        name: httpd
         state: restarted
